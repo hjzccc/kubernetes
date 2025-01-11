@@ -410,8 +410,8 @@ func (sched *Scheduler) skipPodSchedule(ctx context.Context, fwk framework.Frame
 // If it fails, it will return a FitError with reasons.
 func (sched *Scheduler) schedulePod(ctx context.Context, fwk framework.Framework, state *framework.CycleState, pod *v1.Pod) (result ScheduleResult, err error) {
 	trace := utiltrace.New("Scheduling", utiltrace.Field{Key: "namespace", Value: pod.Namespace}, utiltrace.Field{Key: "name", Value: pod.Name})
-	klog.InfoS("bro wtf?")
-	// defer trace.LogIfLong(100 * time.Millisecond)
+	klog.InfoS("Start scheduling", pod.Name)
+	defer trace.LogIfLong(100 * time.Millisecond)
 	if err := sched.Cache.UpdateSnapshot(klog.FromContext(ctx), sched.nodeInfoSnapshot); err != nil {
 		return result, err
 	}
@@ -452,6 +452,7 @@ func (sched *Scheduler) schedulePod(ctx context.Context, fwk framework.Framework
 	host, _, err := selectHost(priorityList, numberOfHighestScoredNodesToReport)
 	trace.Step("Prioritizing done")
 
+	klog.InfoS("Finish scheduling", pod.Name)
 	return ScheduleResult{
 		SuggestedHost:  host,
 		EvaluatedNodes: len(feasibleNodes) + diagnosis.NodeToStatus.Len(),
