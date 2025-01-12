@@ -65,6 +65,7 @@ const (
 func (sched *Scheduler) ScheduleOne(ctx context.Context) {
 	logger := klog.FromContext(ctx)
 	podInfo, err := sched.NextPod(logger)
+	klog.Info("Received new scheduling request for pod", podInfo.Pod.Name)
 	if err != nil {
 		logger.Error(err, "Error while retrieving next pod from scheduling queue")
 		return
@@ -115,7 +116,7 @@ func (sched *Scheduler) ScheduleOne(ctx context.Context) {
 		sched.FailureHandler(schedulingCycleCtx, fwk, assumedPodInfo, status, scheduleResult.nominatingInfo, start)
 		return
 	}
-
+	klog.Info("Finish new scheduling request for pod and starting binding", podInfo.Pod.Name)
 	// bind the pod to its host asynchronously (we can do this b/c of the assumption step above).
 	go func() {
 		bindingCycleCtx, cancel := context.WithCancel(ctx)
@@ -410,7 +411,7 @@ func (sched *Scheduler) skipPodSchedule(ctx context.Context, fwk framework.Frame
 // If it fails, it will return a FitError with reasons.
 func (sched *Scheduler) schedulePod(ctx context.Context, fwk framework.Framework, state *framework.CycleState, pod *v1.Pod) (result ScheduleResult, err error) {
 	trace := utiltrace.New("Scheduling", utiltrace.Field{Key: "namespace", Value: pod.Namespace}, utiltrace.Field{Key: "name", Value: pod.Name})
-	klog.InfoS("Start scheduling", pod.Name)
+	klog.InfoS("Start scheduling", "podname", pod.Name)
 	defer trace.LogIfLong(100 * time.Millisecond)
 	if err := sched.Cache.UpdateSnapshot(klog.FromContext(ctx), sched.nodeInfoSnapshot); err != nil {
 		return result, err
@@ -452,7 +453,7 @@ func (sched *Scheduler) schedulePod(ctx context.Context, fwk framework.Framework
 	host, _, err := selectHost(priorityList, numberOfHighestScoredNodesToReport)
 	trace.Step("Prioritizing done")
 
-	klog.InfoS("Finish scheduling", pod.Name)
+	klog.InfoS("Finish scheduling", "podname", pod.Name)
 	return ScheduleResult{
 		SuggestedHost:  host,
 		EvaluatedNodes: len(feasibleNodes) + diagnosis.NodeToStatus.Len(),
